@@ -21,7 +21,6 @@ function getAllItemInShop(userID) {
               return val;
             })
           promiseContainer.push(itemsInList);
-          // return itemsInList;
         });
         Promise.all(promiseContainer).then(resolve).catch(reject);
       })
@@ -71,9 +70,6 @@ function generateVdianListURL(userID) {
 function generateVdianItemURL(itemID) {
   return 'https://weidian.com/item.html?itemID=' + itemID + '&p=-1';
 }
-/**
- * test URLs
- */
 
 const itemsInListTestString = 'https://wd.api.weidian.com/wd/cate/getItemsForBuyer?param={"userID":"1686060","cate_id":"72843023","limitStart":0,"limitNum":70}';
 const itemDetailTestURL = generateVdianItemURL(1848302313);
@@ -101,9 +97,6 @@ function httpsRequest(requestOptions) {
   return promise;
 }
 
-// const item = 'https://weidian.com/item.html?itemID=1860126149&p=-1';
-// var re = httpsRequest(listURL);
-
 
 function getListsInShop(userID) {
   var requestURL = generateVdianListURL(userID);
@@ -126,7 +119,6 @@ function getListInfoFromString(str) {
 
 function getItemsInList(userID, listID, itemNum) {
   var requestURL = generateVdianItemInListURL(userID, listID, itemNum);
-  // console.log(requestURL);
   var promise = httpsRequest(requestURL)
         .then(extractItemsInListDetail);
   return promise;
@@ -134,7 +126,6 @@ function getItemsInList(userID, listID, itemNum) {
 
 function extractItemsInListDetail(str) {
   var obj = JSON.parse(str);
-  // console.log(obj);
   return obj.result.map(simplifyItemsInfoInList)
 }
 
