@@ -1,0 +1,16 @@
+{
+  "name": "vdian",
+  "version": "1.0.0",
+  "description": "",
+  "main": "https.js",
+  "dependencies": {
+    "jQuery": "^1.7.4",
+    "jquery": "^3.1.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
