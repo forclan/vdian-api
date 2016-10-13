@@ -1,4 +1,5 @@
 const https = require('https');
+const writeFile = require('./fs.js').writeInCurrentFolder;
 /**
  * const values
  */
@@ -22,13 +23,26 @@ function getAllItemInShop(userID) {
             })
           promiseContainer.push(itemsInList);
         });
-        Promise.all(promiseContainer).then(resolve).catch(reject);
+        Promise.all(promiseContainer)
+        .then(result => {
+
+          resolve(result);
+        })
+        .catch(reject);
       })
   })
   return promise;
 }
 
-getAllItemInShop(1686060).then(console.log);
+
+getAllItemInShop(1686060)
+  .then(data => {
+    console.log('start to writeFile');
+    writeFile('1686060', JSON.stringify(data));
+    console.log('write to 1686060');
+    return data;
+  })
+  // .then(console.log);
 // 用于获取List分类下所有的商品信息
 function generateCommodityURL(URL, userID, typeNum, start = 0, needNum = 10) {
   var param = {
@@ -139,6 +153,7 @@ function simplifyItemsInfoInList(val) {
     itemCategory: val.cates
   };
 }
+
 function getItemDetailFromURL(itemID) {
   var requestURL = generateVdianItemURL(itemID);
   var promise = httpsRequest(requestURL)
@@ -185,6 +200,7 @@ function imgDeleteParam(URL) {
 }
 
 module.exports = {
+  getAllItemInShop: getAllItemInShop,
   getItemDetail: getItemDetailFromURL,
   getListsInShop: getListsInShop,
   getItemsInList: getItemsInList,
