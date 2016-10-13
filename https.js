@@ -76,7 +76,7 @@ function httpsRequest(requestOptions) {
   return promise;
 }
 
-const item = 'https://weidian.com/item.html?itemID=1860126149&p=-1';
+// const item = 'https://weidian.com/item.html?itemID=1860126149&p=-1';
 // var re = httpsRequest(listURL);
 getListInShop(1686060).then(console.log);
 
@@ -86,12 +86,6 @@ getItemsInList(1686060, 71527374, 19).then(console.log);
 function getListInShop(userID) {
   var requestURL = generateVdianListURL(userID);
   var promise = httpsRequest(requestURL).then(getListInfoFromString);
-  return promise;
-}
-
-function getItemsInList(userID, listID, itemNum) {
-  var requestURL = generateVdianItemInListURL(userID, listID, itemNum);
-  var promise = httpsRequest(requestURL);
   return promise;
 }
 
@@ -108,7 +102,40 @@ function getListInfoFromString(str) {
   return result;
 }
 
-function getItemInfoFromHtml(htmlInString) {
+function getItemsInList(userID, listID, itemNum) {
+  var requestURL = generateVdianItemInListURL(userID, listID, itemNum);
+  console.log(requestURL);
+  var promise = httpsRequest(requestURL)
+        .then(extractItemsInListDetail);
+  return promise;
+}
+
+function extractItemsInListDetail(str) {
+  var obj = JSON.parse(str);
+  // console.log(obj);
+  return obj.result.map(simplifyItemsInfoInList)
+}
+
+function simplifyItemsInfoInList(val) {
+  return {
+    itemID: val.itemID,
+    itemDescription: val.itemName,
+    itemPrice: val.itemPrice,
+    itemStock: val.stock,
+    itemImg: imgDeleteParam(val.img),
+    itemCategory: val.cates
+  };
+}
+function getItemDetailFromURL(itemID) {
+  var requestURL = generateVdianItemURL(itemID);
+  var promise = httpsRequest(requestURL)
+        .then(getItemInfoFromHtmlString)
+  return promise;
+}
+
+getItemDetailFromURL(1848302313).then(console.log).catch(console.log)
+
+function getItemInfoFromHtmlString(htmlInString) {
   // if input is Buffer, transmit it to String;
   htmlInString += '';
   // extrace title
@@ -127,10 +154,6 @@ function getItemInfoFromHtml(htmlInString) {
 
 // 用于将服务器上获取的item详细信息进行简化，删除不需要的键值
 function simplifItemInfo(itemInfo) {
-  const URLReg = /https:\/\/[\w\.\-\/]*/ig;
-  const imgDeleteParam = URL => {
-    return URL.match(URLReg)[0];
-  }
   var result = itemInfo.result;
   var obj = {
     itemID: result.itemID,
@@ -143,4 +166,9 @@ function simplifItemInfo(itemInfo) {
     sku: result.sku,
   };
   return obj;
+}
+
+function imgDeleteParam(URL) {
+  const URLReg = /https:\/\/[\w\.\-\/]*/ig;
+  return URL.match(URLReg)[0];
 }
