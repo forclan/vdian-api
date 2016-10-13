@@ -8,6 +8,10 @@ const VDIAN_ITEM_URL = 'https://wd.api.weidian.com/wd/cate/getItemsForBuyer';
 // 用于获取店铺所有分类号的地址，在generateVdianListURL中使用
 const VDIAN_LIST_URL = 'https://wd.api.weidian.com/wd/cate/getList';
 
+function getAllItemsAndDetail(userID) {
+  return getAllItemInShop(userID).then(getItemsInDetailFromListArray);
+}
+
 function getAllItemInShop(userID) {
   var promise = new Promise((resolve, reject) => {
     let result = [];
@@ -16,7 +20,7 @@ function getAllItemInShop(userID) {
         let len = listArray.length;
         let promiseContainer = [];
         listArray.map(list => {
-          var itemsInList =  getItemsInList(userID, list.cate_id, list.cate_item_num)
+          var itemsInList = getItemsInList(userID, list.cate_id, list.cate_item_num)
             .then(val => {
               val.cateInfo = list;
               return val;
@@ -24,27 +28,36 @@ function getAllItemInShop(userID) {
           promiseContainer.push(itemsInList);
         });
         Promise.all(promiseContainer)
-        .then(result => {
-
-          resolve(result);
-        })
-        .catch(reject);
+          .then(result => {
+            resolve(result);
+          })
+          .catch(reject);
       })
-  })
+  });
+
   return promise;
 }
 
 
-getAllItemInShop(1686060)
-  .then(data => {
-    console.log('start to writeFile');
-    writeFile('1686060', JSON.stringify(data));
-    console.log('write to 1686060');
-    return data;
+function getItemsInDetailFromListArray(listArray) {
+  // 获取item中的详细信息（介绍图片地址，图片信息等）
+  var promiseContainer = [];
+  listArray.map(itemList => {
+    itemList.map(item => {
+      let itemDetail = getItemDetail(item.itemID)
+        .then(itemDetail => {
+          item.detailInfo = itemDetail;
+          return item;
+        });
+      promiseContainer.push(itemDetail);
+    });
   })
-  // .then(console.log);
+  return Promise.all(promiseContainer);
+}
+
+
 // 用于获取List分类下所有的商品信息
-function generateCommodityURL(URL, userID, typeNum, start = 0, needNum = 10) {
+function generateCommodityURL(URL, userID, typeNum, start = 0, needNum = 100) {
   var param = {
     userID,
     cate_id: typeNum,
@@ -98,7 +111,7 @@ function httpsRequest(requestOptions) {
     var results = '';
     var req = https.request(requestOptions, res => {
       res.setEncoding('utf8');
-      console.log('https request received, url is' + requestOptions);
+      console.log('https request send, url is ' + requestOptions);
       res.on('data', data => {
         results += data
       });
@@ -134,7 +147,7 @@ function getListInfoFromString(str) {
 function getItemsInList(userID, listID, itemNum) {
   var requestURL = generateVdianItemInListURL(userID, listID, itemNum);
   var promise = httpsRequest(requestURL)
-        .then(extractItemsInListDetail);
+    .then(extractItemsInListDetail);
   return promise;
 }
 
@@ -154,10 +167,10 @@ function simplifyItemsInfoInList(val) {
   };
 }
 
-function getItemDetailFromURL(itemID) {
+function getItemDetail(itemID) {
   var requestURL = generateVdianItemURL(itemID);
   var promise = httpsRequest(requestURL)
-        .then(getItemInfoFromHtmlString)
+    .then(getItemInfoFromHtmlString)
   return promise;
 }
 
@@ -168,7 +181,7 @@ function getItemInfoFromHtmlString(htmlInString) {
   var itemNameReg = /<title>(.*)<\/title>/i;
   var itemName = htmlInString.match(itemNameReg)[1];
   // 微店的数据是放在最下面的表达式中，将其提取出来
-  var itemInfoReg = /(var itemInfo = {[\s\S]*?);/i;
+  var itemInfoReg = /(var itemInfo = {[\s\S]*?)};/i;
   var itemInfo = htmlInString.match(itemInfoReg)[0];
   // get itemInfo;
   eval(itemInfo);;
@@ -200,8 +213,8 @@ function imgDeleteParam(URL) {
 }
 
 module.exports = {
-  getAllItemInShop: getAllItemInShop,
-  getItemDetail: getItemDetailFromURL,
+  getAllItemInfo: getAllItemsAndDetail,
+  getItemDetail: getItemDetail,
   getListsInShop: getListsInShop,
   getItemsInList: getItemsInList,
 };
