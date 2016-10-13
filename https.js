@@ -1,7 +1,4 @@
 const https = require('https');
-var request = require('./https');
-
-
 /**
  * const values
  */
@@ -10,6 +7,29 @@ const VDIAN_ITEM_URL = 'https://wd.api.weidian.com/wd/cate/getItemsForBuyer';
 // 用于获取店铺所有分类号的地址，在generateVdianListURL中使用
 const VDIAN_LIST_URL = 'https://wd.api.weidian.com/wd/cate/getList';
 
+function getAllItemInShop(userID) {
+  var promise = new Promise((resolve, reject) => {
+    let result = [];
+    const listsInShop = getListsInShop(userID)
+      .then(listArray => {
+        let len = listArray.length;
+        let promiseContainer = [];
+        listArray.map(list => {
+          var itemsInList =  getItemsInList(userID, list.cate_id, list.cate_item_num)
+            .then(val => {
+              val.cateInfo = list;
+              return val;
+            })
+          promiseContainer.push(itemsInList);
+          // return itemsInList;
+        });
+        Promise.all(promiseContainer).then(resolve).catch(reject);
+      })
+  })
+  return promise;
+}
+
+getAllItemInShop(1686060).then(console.log);
 // 用于获取List分类下所有的商品信息
 function generateCommodityURL(URL, userID, typeNum, start = 0, needNum = 10) {
   var param = {
@@ -30,22 +50,27 @@ function generateCommodityURL(URL, userID, typeNum, start = 0, needNum = 10) {
  * @param  {int} itemNumInList 该分类下的item数目，默认值为10
  * @return {string}               一个URL地址，返回值为分类下的item地址
  */
-const generateVdianItemInListURL = (userID, listNum, itemNumInList) => generateCommodityURL(VDIAN_ITEM_URL, userID, listNum, 0, itemNumInList);
+function generateVdianItemInListURL(userID, listNum, itemNumInList) {
+  return generateCommodityURL(VDIAN_ITEM_URL, userID, listNum, 0, itemNumInList);
+}
 
 /**
  * 生成一个用于获取店铺下所有分类的URL地址
  * @param  {int} userID 店铺的ID（店家的ID）
  * @return {string}        用于获取所有分类号的URL地址
  */
-const generateVdianListURL = userID => generateCommodityURL(VDIAN_LIST_URL, userID);
+function generateVdianListURL(userID) {
+  return generateCommodityURL(VDIAN_LIST_URL, userID);
+}
 
 /**
  * 生成一个用于获取item详细信息的URL地址
  * @param  {int} itemID 想要获取的item号
  * @return {string}        item的URL地址
  */
-const generateVdianItemURL = itemID => 'https://weidian.com/item.html?itemID=' + itemID + '&p=-1';
-
+function generateVdianItemURL(itemID) {
+  return 'https://weidian.com/item.html?itemID=' + itemID + '&p=-1';
+}
 /**
  * test URLs
  */
@@ -63,7 +88,7 @@ function httpsRequest(requestOptions) {
     var results = '';
     var req = https.request(requestOptions, res => {
       res.setEncoding('utf8');
-      console.log('https request received');
+      console.log('https request received, url is' + requestOptions);
       res.on('data', data => {
         results += data
       });
@@ -78,12 +103,9 @@ function httpsRequest(requestOptions) {
 
 // const item = 'https://weidian.com/item.html?itemID=1860126149&p=-1';
 // var re = httpsRequest(listURL);
-getListInShop(1686060).then(console.log);
-
-getItemsInList(1686060, 71527374, 19).then(console.log);
 
 
-function getListInShop(userID) {
+function getListsInShop(userID) {
   var requestURL = generateVdianListURL(userID);
   var promise = httpsRequest(requestURL).then(getListInfoFromString);
   return promise;
@@ -104,7 +126,7 @@ function getListInfoFromString(str) {
 
 function getItemsInList(userID, listID, itemNum) {
   var requestURL = generateVdianItemInListURL(userID, listID, itemNum);
-  console.log(requestURL);
+  // console.log(requestURL);
   var promise = httpsRequest(requestURL)
         .then(extractItemsInListDetail);
   return promise;
@@ -120,8 +142,8 @@ function simplifyItemsInfoInList(val) {
   return {
     itemID: val.itemID,
     itemDescription: val.itemName,
-    itemPrice: val.itemPrice,
-    itemStock: val.stock,
+    itemPrice: val.price,
+    itemNumInStock: val.stock,
     itemImg: imgDeleteParam(val.img),
     itemCategory: val.cates
   };
@@ -132,8 +154,6 @@ function getItemDetailFromURL(itemID) {
         .then(getItemInfoFromHtmlString)
   return promise;
 }
-
-getItemDetailFromURL(1848302313).then(console.log).catch(console.log)
 
 function getItemInfoFromHtmlString(htmlInString) {
   // if input is Buffer, transmit it to String;
@@ -172,3 +192,9 @@ function imgDeleteParam(URL) {
   const URLReg = /https:\/\/[\w\.\-\/]*/ig;
   return URL.match(URLReg)[0];
 }
+
+module.exports = {
+  getItemDetail: getItemDetailFromURL,
+  getListsInShop: getListsInShop,
+  getItemsInList: getItemsInList,
+};
